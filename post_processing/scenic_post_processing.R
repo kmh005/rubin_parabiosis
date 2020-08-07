@@ -3,6 +3,8 @@ library(ggplot2)
 library(pheatmap)
 library(openxlsx)
 library(VennDiagram)
+library(dplyr)
+library(futile.logger)
 
 # load data (SCENIC top regulator files)
 # Inputs:
@@ -26,8 +28,9 @@ cluster_type<-"big"
 paracoolo<-"ALL_big_paracoolo.v1.xlsx"
 paracooly<-"ALL_big_paracooly.v1.xlsx"
 output<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/VASC/"
-cluster<-"EC"
+# cluster<-"PC"
 pval<-0.05
+input<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/DGE_Scenic_comparison"
 
 # Function to get regulons for each animal type and clean up their names
 # Inputs: 
@@ -56,7 +59,7 @@ get_regulons <- function(data, cluster) {
 # file output directory folder
 # cluster name (like EC)
 # p-value
-post_processing <- function(oy, oo, ox, yx, yo, yy, lineage, cluster_type, paracoolo, paracooly, output, cluster, animals, pval){
+post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo, paracooly, output, animals, pval, input){
   
   # Get list of clean regulon names for Scenic runs for each animal
   oy_regs<-get_regulons(oy, cluster)
@@ -71,8 +74,9 @@ post_processing <- function(oy, oo, ox, yx, yo, yy, lineage, cluster_type, parac
   paracooly<-read.xlsx(paracooly, sheet=cluster)
   
   # Create directory
-  dir.create(output, showWarnings=FALSE)
-  setwd(output)
+  dir_name<-paste0(output, cluster, "/")
+  dir.create(dir_name, showWarnings=FALSE)
+  setwd(dir_name)
   
   # Make regulon lists for Venn diagrams
   paracoolo_reg_list<-list(OY=oy_regs, OO=oo_regs, OX=ox_regs, YX=yx_regs)
@@ -81,22 +85,25 @@ post_processing <- function(oy, oo, ox, yx, yo, yy, lineage, cluster_type, parac
   
   # Plot Venn diagrams
   # ParaCoolY Venn 
-  vd_name<-paste0(lineage, "_", cluster_type, "_regulons_ParaCoolY.png")
+  vd_name<-paste0(lineage, "_regulons_ParaCoolY.png")
+  futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
   vd<- venn.diagram(lwd= 5, paracooly_reg_list, vd_name, main="Significant regulons identified by SCENIC", 
                     sub="VASC Lineage", main.fontface = "bold", main.fontfamily = "Helvetica",sub.fontfamily = "Helvetica", 
                     cat.fontface = "bold", cat.fontfamily = "Helvetica", fill=c("blue", "red", "green", "yellow"), 
                     fontfamily="Helvetica", alpha=rep(0.4,4), imagetype = "png")
   
   # ParaCoolO Venn 
-  vd_name<-paste0(lineage, "_", cluster_type, "_regulons_ParaCoolO.png")
+  vd_name<-paste0(lineage, "_regulons_ParaCoolO.png")
+  futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
   vd<- venn.diagram(lwd= 5, paracoolo_reg_list, vd_name, main="Significant regulons identified by SCENIC", 
                     sub="VASC Lineage", main.fontface = "bold", main.fontfamily = "Helvetica",sub.fontfamily = "Helvetica", 
                     cat.fontface = "bold", cat.fontfamily = "Helvetica", fill=c("blue", "red", "green", "yellow"), 
                     fontfamily="Helvetica", alpha=rep(0.4,4), imagetype = "png")
   
   # OY-YO comparison Venn
-  vd_name<-paste0(lineage, "_", cluster_type, "_OY_YO.png")
-  vd<- venn.diagram(lwd= 5, oy_yo_reg_list, "VASC_big_OY_YO.png", main="Significant regulons in OY and YO Mice", sub="VASC Lineage", 
+  vd_name<-paste0(lineage, "_OY_YO.png")
+  futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
+  vd<- venn.diagram(lwd= 5, oy_yo_reg_list, vd_name, main="Significant regulons in OY and YO Mice", sub="VASC Lineage", 
                     main.fontface = "bold", main.fontfamily = "Helvetica",sub.fontfamily = "Helvetica", cat.fontface = "bold", 
                     cat.fontfamily = "Helvetica", fill=c("blue", "red"), fontfamily="Helvetica", alpha=rep(0.4,2), imagetype="png")
   
@@ -105,7 +112,7 @@ post_processing <- function(oy, oo, ox, yx, yo, yy, lineage, cluster_type, parac
   oy_yx_overlap<-intersect(oy_regs,yx_regs)
   oy_yx_no_ox<-setdiff(oy_yx_overlap,ox_regs)
   oy_yx_no_ox_no_oo<-setdiff(oy_yx_no_ox, oo_regs)
-  file_name<-file("rejuvenation_genes.txt")
+  file_name<-file(paste0(cluster, "_rejuvenation_genes.txt"))
   writeLines(oy_yx_no_ox_no_oo, file_name)
   close(file_name)
   
@@ -114,7 +121,7 @@ post_processing <- function(oy, oo, ox, yx, yo, yy, lineage, cluster_type, parac
   yo_ox_overlap<-intersect(yo_regs,ox_regs)
   yo_ox_no_yx<-setdiff(yo_ox_overlap,yx_regs)
   yo_ox_no_yx_no_yy<-setdiff(yo_ox_no_yx, yy_regs)
-  file_name<-file("aging_acceleration_genes.txt")
+  file_name<-file(paste0(cluster, "_aging_acceleration_genes.txt"))
   writeLines(yo_ox_no_yx_no_yy, file_name)
   close(file_name)
   
@@ -151,30 +158,53 @@ post_processing <- function(oy, oo, ox, yx, yo, yy, lineage, cluster_type, parac
                border_color=NA, silent=TRUE, clustering_distance_rows="euclidean",
                clustering_method="ward.D2", cluster_row=T)
   
-  pdf("OY_YO_bidirectionality.pdf", width=8.5, height=11)
+  pdf(paste0(cluster, "_OY_YO_bidirectionality.pdf"), width=8.5, height=11)
   grid::grid.newpage()
   grid::grid.draw(ph$gtable)
   
   #closes the plot
   dev.off()
   
-  # Compare DGE ParaCoolO output to Scenic significant regulons
-  scenic_all<-rbind(oy, oo, ox, yx, yo, yy)
+  # Compare DGE output to Scenic significant regulons
+  scenic_pco<-bind_rows(oy, oo, ox, yx)
+  scenic_pcy<-bind_rows(yo, yy, ox, yx)
 
   # Subset ECs from Scenic data
-  scenic_cluster<-subset(scenic_all, scenic_all$CellType %in% cluster)
+  scenic_pco_cluster<-subset(scenic_pco, scenic_pco$CellType %in% cluster)
+  scenic_pcy_cluster<-subset(scenic_pcy, scenic_pcy$CellType %in% cluster)
   
   # clean up regulon names
-  scenic_cluster_clean<-sub(" .*", "", scenic_cluster$Regulon)
-  scenic_cluster_clean<-sub("_[^_]+$", "", scenic_cluster_clean)
-  scenic_cluster$Regulon<-scenic_cluster_clean
+  scenic_pco_cluster_clean<-sub(" .*", "", scenic_pco_cluster$Regulon)
+  scenic_pco_cluster_clean<-sub("_[^_]+$", "", scenic_pco_cluster_clean)
+  scenic_pco_cluster$Regulon<-scenic_pco_cluster_clean
+  
+  scenic_pcy_cluster_clean<-sub(" .*", "", scenic_pcy_cluster$Regulon)
+  scenic_pcy_cluster_clean<-sub("_[^_]+$", "", scenic_pcy_cluster_clean)
+  scenic_pcy_cluster$Regulon<-scenic_pcy_cluster_clean
   
   # Restrict DGEs to adjusted p-vals <= 0.05
-  sig_dge<-subset(paracoolo, p_adj.loc<=pval | grepl("-", p_adj.loc))
+  sig_dge_pco<-subset(paracoolo, p_adj.loc<=pval | grepl("-", p_adj.loc))
+  sig_dge_pcy<-subset(paracooly, p_adj.loc<=pval | grepl("-", p_adj.loc))
   
   # Intersect DGEs and Scenic Data
-  tf<-intersect(sig_dge$gene, scenic_cluster$Regulon)
-  file_name<-file("DGE_Scenic_comparison.txt")
-  writeLines(tf, file_name)
+  # ParaCoolO
+  tf_pco<-intersect(sig_dge_pco$gene, scenic_pco_cluster$Regulon)
+  file_name<-file(paste0(cluster, "_ParaCoolO_Scenic_comparison.txt"))
+  writeLines(tf_pco, file_name)
   close(file_name)
+  
+  # ParaCoolY
+  tf_pcy<-intersect(sig_dge_pcy$gene, scenic_pcy_cluster$Regulon)
+  file_name<-file(paste0(cluster, "_ParaCoolY_Scenic_comparison.txt"))
+  writeLines(tf_pcy, file_name)
+  close(file_name)
+  
+  # Reset directory
+  setwd(input)
 }
+
+# Run script
+# all_clusters<-c("MG", "MAC", "MNC", "T_cell", "DC", "NK", "B_cell", "NEUT")
+all_clusters<-c("EC", "PC", "VSMC", "VLMC", "Hb_VC", "ABC")
+all_results<-lapply(all_clusters, function(x) post_processing(x, oy, oo, ox, yx, yo, yy, lineage, paracoolo, paracooly, output, animals, pval, input))
+
