@@ -164,41 +164,54 @@ post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo,
   
   #closes the plot
   dev.off()
-  
-  # Compare DGE output to Scenic significant regulons
-  scenic_pco<-bind_rows(oy, oo, ox, yx)
-  scenic_pcy<-bind_rows(yo, yy, ox, yx)
 
-  # Subset ECs from Scenic data
-  scenic_pco_cluster<-subset(scenic_pco, scenic_pco$CellType %in% cluster)
-  scenic_pcy_cluster<-subset(scenic_pcy, scenic_pcy$CellType %in% cluster)
-  
-  # clean up regulon names
-  scenic_pco_cluster_clean<-sub(" .*", "", scenic_pco_cluster$Regulon)
-  scenic_pco_cluster_clean<-sub("_[^_]+$", "", scenic_pco_cluster_clean)
-  scenic_pco_cluster$Regulon<-scenic_pco_cluster_clean
-  
-  scenic_pcy_cluster_clean<-sub(" .*", "", scenic_pcy_cluster$Regulon)
-  scenic_pcy_cluster_clean<-sub("_[^_]+$", "", scenic_pcy_cluster_clean)
-  scenic_pcy_cluster$Regulon<-scenic_pcy_cluster_clean
-  
   # Restrict DGEs to adjusted p-vals <= 0.05
   sig_dge_pco<-subset(paracoolo, p_adj.loc<=pval | grepl("-", p_adj.loc))
   sig_dge_pcy<-subset(paracooly, p_adj.loc<=pval | grepl("-", p_adj.loc))
   
   # Intersect DGEs and Scenic Data
   # ParaCoolO
-  tf_pco<-intersect(sig_dge_pco$gene, scenic_pco_cluster$Regulon)
-  file_name<-file(paste0(cluster, "_ParaCoolO_Scenic_comparison.txt"))
-  writeLines(tf_pco, file_name)
+  oy_pco<-intersect(sig_dge_pco$gene, oy_regs)
+  file_name<-file(paste0(cluster, "_ParaCoolO_OY_comparison.txt"))
+  writeLines(oy_pco, file_name)
+  close(file_name)
+  
+  oo_pco<-intersect(sig_dge_pco$gene, oo_regs)
+  file_name<-file(paste0(cluster, "_ParaCoolO_OO_comparison.txt"))
+  writeLines(oo_pco, file_name)
+  close(file_name)
+  
+  ox_pco<-intersect(sig_dge_pco$gene, ox_regs)
+  file_name<-file(paste0(cluster, "_ParaCoolO_OX_comparison.txt"))
+  writeLines(ox_pco, file_name)
+  close(file_name)
+  
+  yx_pco<-intersect(sig_dge_pco$gene, yx_regs)
+  file_name<-file(paste0(cluster, "_ParaCoolO_YX_comparison.txt"))
+  writeLines(yx_pco, file_name)
   close(file_name)
   
   # ParaCoolY
-  tf_pcy<-intersect(sig_dge_pcy$gene, scenic_pcy_cluster$Regulon)
-  file_name<-file(paste0(cluster, "_ParaCoolY_Scenic_comparison.txt"))
-  writeLines(tf_pcy, file_name)
+  yo_pcy<-intersect(sig_dge_pcy$gene, yo_regs)
+  file_name<-file(paste0(cluster, "_ParaCoolY_YO_comparison.txt"))
+  writeLines(yo_pcy, file_name)
   close(file_name)
   
+  yy_pcy<-intersect(sig_dge_pcy$gene, yy_regs)
+  file_name<-file(paste0(cluster, "_ParaCoolY_YY_comparison.txt"))
+  writeLines(yy_pcy, file_name)
+  close(file_name)
+  
+  yx_pcy<-intersect(sig_dge_pcy$gene, yx_regs)
+  file_name<-file(paste0(cluster, "_ParaCoolY_YX_comparison.txt"))
+  writeLines(yx_pcy, file_name)
+  close(file_name)
+  
+  ox_pcy<-intersect(sig_dge_pcy$gene, ox_regs)
+  file_name<-file(paste0(cluster, "_ParaCoolY_OX_comparison.txt"))
+  writeLines(ox_pcy, file_name)
+  close(file_name)
+
   # Reset directory
   setwd(input)
 }
@@ -207,4 +220,3 @@ post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo,
 # all_clusters<-c("MG", "MAC", "MNC", "T_cell", "DC", "NK", "B_cell", "NEUT")
 all_clusters<-c("EC", "PC", "VSMC", "VLMC", "Hb_VC", "ABC")
 all_results<-lapply(all_clusters, function(x) post_processing(x, oy, oo, ox, yx, yo, yy, lineage, paracoolo, paracooly, output, animals, pval, input))
-
