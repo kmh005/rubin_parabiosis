@@ -1,4 +1,4 @@
-# import libraries
+# Load libraries
 library(ggplot2)
 library(pheatmap)
 library(openxlsx)
@@ -6,7 +6,7 @@ library(VennDiagram)
 library(dplyr)
 library(futile.logger)
 
-# load data (SCENIC top regulator files)
+# Load data (SCENIC top regulator files)
 # Inputs:
 # cell lineage
 # animal type
@@ -16,7 +16,7 @@ load_data <- function(lineage, animal, cluster_type){
   read.delim(file_name, sep="\t", header=T)
 }
 
-# Variables
+# Load variables
 oy<-load_data("VASC", "OY", "big")
 oo<-load_data("VASC", "OO", "big")
 ox<-load_data("VASC", "OX", "big")
@@ -28,9 +28,9 @@ cluster_type<-"big"
 paracoolo<-"ALL_big_paracoolo.v1.xlsx"
 paracooly<-"ALL_big_paracooly.v1.xlsx"
 output<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/VASC/"
-# cluster<-"PC"
+cluster<-"EC"
 pval<-0.05
-input<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/DGE_Scenic_comparison"
+input<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/top_regulator_files/VASC/"
 
 # Function to get regulons for each animal type and clean up their names
 # Inputs: 
@@ -112,18 +112,14 @@ post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo,
   oy_yx_overlap<-intersect(oy_regs,yx_regs)
   oy_yx_no_ox<-setdiff(oy_yx_overlap,ox_regs)
   oy_yx_no_ox_no_oo<-setdiff(oy_yx_no_ox, oo_regs)
-  file_name<-file(paste0(cluster, "_rejuvenation_genes.txt"))
-  writeLines(oy_yx_no_ox_no_oo, file_name)
-  close(file_name)
+  write.table(oy_yx_no_ox_no_oo, file=paste0(cluster, "_rejuvenation_genes.txt"), sep="\t", row.names=F, quote=F)
   
   # Find the TFs that only intersect among YO and OX but not in YY and YX 
   # "Aging acceleration" genes
   yo_ox_overlap<-intersect(yo_regs,ox_regs)
   yo_ox_no_yx<-setdiff(yo_ox_overlap,yx_regs)
   yo_ox_no_yx_no_yy<-setdiff(yo_ox_no_yx, yy_regs)
-  file_name<-file(paste0(cluster, "_aging_acceleration_genes.txt"))
-  writeLines(yo_ox_no_yx_no_yy, file_name)
-  close(file_name)
+  write.table(yo_ox_no_yx_no_yy, file=paste0(cluster, "_aging_acceleration_genes.txt"), sep="\t", row.names=F, quote=F)
   
   # Plot directionality heatmap of TFs significant in OY and YO
   # Identify the 101 TFs Significant in OY and YO
@@ -172,45 +168,49 @@ post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo,
   # Intersect DGEs and Scenic Data
   # ParaCoolO
   oy_pco<-intersect(sig_dge_pco$gene, oy_regs)
-  file_name<-file(paste0(cluster, "_ParaCoolO_OY_comparison.txt"))
-  writeLines(oy_pco, file_name)
-  close(file_name)
+  write.table(oy_pco, file=paste0(cluster, "_ParaCoolO_OY_comparison.txt"), sep="\t", row.names=F, quote=F)
   
   oo_pco<-intersect(sig_dge_pco$gene, oo_regs)
-  file_name<-file(paste0(cluster, "_ParaCoolO_OO_comparison.txt"))
-  writeLines(oo_pco, file_name)
-  close(file_name)
+  write.table(oo_pco, file=paste0(cluster, "_ParaCoolO_OO_comparison.txt"), sep="\t", row.names=F, quote=F)
   
   ox_pco<-intersect(sig_dge_pco$gene, ox_regs)
-  file_name<-file(paste0(cluster, "_ParaCoolO_OX_comparison.txt"))
-  writeLines(ox_pco, file_name)
-  close(file_name)
+  write.table(ox_pco, file=paste0(cluster, "_ParaCoolO_OX_comparison.txt"), sep="\t", row.names=F, quote=F)
   
   yx_pco<-intersect(sig_dge_pco$gene, yx_regs)
-  file_name<-file(paste0(cluster, "_ParaCoolO_YX_comparison.txt"))
-  writeLines(yx_pco, file_name)
-  close(file_name)
+  write.table(yx_pco, file=paste0(cluster, "_ParaCoolO_YX_comparison.txt"), sep="\t", row.names=F, quote=F)
   
   # ParaCoolY
   yo_pcy<-intersect(sig_dge_pcy$gene, yo_regs)
-  file_name<-file(paste0(cluster, "_ParaCoolY_YO_comparison.txt"))
-  writeLines(yo_pcy, file_name)
-  close(file_name)
+  write.table(yo_pcy, file=paste0(cluster, "_ParaCoolY_YO_comparison.txt"), sep="\t", row.names=F, quote=F)
   
   yy_pcy<-intersect(sig_dge_pcy$gene, yy_regs)
-  file_name<-file(paste0(cluster, "_ParaCoolY_YY_comparison.txt"))
-  writeLines(yy_pcy, file_name)
-  close(file_name)
+  write.table(yy_pcy, file=paste0(cluster, "_ParaCoolY_YY_comparison.txt"), sep="\t", row.names=F, quote=F)
   
   yx_pcy<-intersect(sig_dge_pcy$gene, yx_regs)
-  file_name<-file(paste0(cluster, "_ParaCoolY_YX_comparison.txt"))
-  writeLines(yx_pcy, file_name)
-  close(file_name)
+  write.table(yx_pcy, file=paste0(cluster, "_ParaCoolY_YX_comparison.txt"), sep="\t", row.names=F, quote=F)
   
   ox_pcy<-intersect(sig_dge_pcy$gene, ox_regs)
-  file_name<-file(paste0(cluster, "_ParaCoolY_OX_comparison.txt"))
-  writeLines(ox_pcy, file_name)
-  close(file_name)
+  write.table(ox_pcy, file=paste0(cluster, "_ParaCoolY_OX_comparison.txt"), sep="\t", row.names=F, quote=F)
+  
+  # Combine all intersects into a data frame
+  intersects_pco<-list(oy=oy_pco, ox=ox_pco, yx=yx_pco, oo=oo_pco)
+  intersects_pco<-lapply(intersects_pco, function(gene) as.data.frame(gene))
+  intersects_pco<-bind_rows(intersects_pco, .id="mouse")
+  write.table(intersects_pco, file="ParaCoolO_scenic_intersects.txt", sep="\t", row.names=F, quote=F)
+  
+  intersects_pcy<-list(oo=yo_pcy, ox=ox_pcy, yx=yx_pcy, yy=yy_pcy)
+  intersects_pcy<-lapply(intersects_pcy, function(gene) as.data.frame(gene))
+  intersects_pcy<-bind_rows(intersects_pcy, .id="mouse")
+  write.table(intersects_pcy, file="ParaCoolY_scenic_intersects.txt", sep="\t", row.names=F, quote=F)
+  
+  # plot 
+  title<-paste0("ParaCoolO and Scenic comparison, ", lineage, " lineage, ", cluster, " cluster")
+  ggplot(intersects_pco, aes(x=gene, fill=mouse)) + geom_bar() + ggtitle(title) + theme(plot.title = element_text(hjust = 0.5))
+  ggsave("ParaCoolO_Scenic_comparison.png", height=7, width=7)
+  
+  title<-paste0("ParaCoolY and Scenic comparison, ", lineage, " lineage, ", cluster, " cluster")
+  ggplot(intersects_pcy, aes(x=gene, fill=mouse)) + geom_bar() + ggtitle(title) + theme(plot.title = element_text(hjust = 0.5))
+  ggsave("ParaCoolY_Scenic_comparison.png", height=7, width=7)
 
   # Reset directory
   setwd(input)
@@ -218,5 +218,5 @@ post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo,
 
 # Run script
 # all_clusters<-c("MG", "MAC", "MNC", "T_cell", "DC", "NK", "B_cell", "NEUT")
-all_clusters<-c("EC", "PC", "VSMC", "VLMC", "Hb_VC", "ABC")
+# all_clusters<-c("EC", "PC", "VSMC", "VLMC", "Hb_VC", "ABC")
 all_results<-lapply(all_clusters, function(x) post_processing(x, oy, oo, ox, yx, yo, yy, lineage, paracoolo, paracooly, output, animals, pval, input))
