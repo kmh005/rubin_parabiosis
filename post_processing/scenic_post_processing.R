@@ -30,7 +30,7 @@ paracooly<-"ALL_big_paracooly.v1.xlsx"
 output<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/VASC/"
 cluster<-"EC"
 pval<-0.05
-input<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/top_regulator_files/VASC/"
+input<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/top_regulator_files/by_lineage/VASC/"
 
 # Function to get regulons for each animal type and clean up their names
 # Inputs: 
@@ -205,12 +205,13 @@ post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo,
   
   # plot 
   title<-paste0("ParaCoolO and Scenic comparison, ", lineage, " lineage, ", cluster, " cluster")
-  ggplot(intersects_pco, aes(x=gene, fill=mouse)) + geom_bar() + ggtitle(title) + theme(plot.title = element_text(hjust = 0.5))
-  ggsave("ParaCoolO_Scenic_comparison.png", height=7, width=7)
+  g<-ggplot(intersects_pco, aes(x=gene, fill=mouse)) + geom_bar() + ggtitle(title) + theme(plot.title = element_text(hjust = 0.5))
+  ggsave("ParaCoolO_Scenic_comparison.png", height=7, width=7, g)
   
   title<-paste0("ParaCoolY and Scenic comparison, ", lineage, " lineage, ", cluster, " cluster")
-  ggplot(intersects_pcy, aes(x=gene, fill=mouse)) + geom_bar() + ggtitle(title) + theme(plot.title = element_text(hjust = 0.5))
-  ggsave("ParaCoolY_Scenic_comparison.png", height=7, width=7)
+  g<-ggplot(intersects_pcy, aes(x=gene, fill=mouse)) + geom_bar() + ggtitle(title)
+  # try out + labs(title="Blah", x="blah")
+  ggsave("ParaCoolY_Scenic_comparison.png", height=7, width=7, g)
 
   # Reset directory
   setwd(input)
