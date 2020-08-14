@@ -1,6 +1,7 @@
 # Load packages
 library(dplyr)
 library(reshape2)
+library(tibble)
 
 # Variables
 animal<-"OY"
@@ -47,9 +48,12 @@ make_tf_matrix <- function(animal, input, output){
   # Set output directory for final matrix
   setwd(output)
   marker<-read.delim("marker_file.txt", sep="\t", header=T)
+  # marker[nrow(marker) + 1,] = c("counts","counts")
+  
   
   # subset out OLG cell types (for now)
   marker<-marker[!(marker$Cluster=="OPC" | marker$Cluster=="OLG" | marker$Cluster=="OEG"),]
+  
   
   # Bind data
   all_lin <- bind_rows(vasc, immune, neuron, asc_epc)
@@ -59,25 +63,24 @@ make_tf_matrix <- function(animal, input, output){
   
   # Change df dimensions
   all_lin<- dcast(all_lin, Regulon ~ CellType, value.var = "RelativeActivity")
-  # rownames(all_lin)<-all_lin$Regulon
-  # all_lin$Regulon<-NULL
+  rownames(all_lin)<-all_lin$Regulon
+  all_lin$Regulon<-NULL
   
+  # Reorder cols by marker file
+  all_lin<-all_lin %>% rownames_to_column("Regulon") %>% select(c("Regulon", marker$Cluster))
+
   # Count regulon frequency and store as col
-  a<-1:nrow(all_lin)
-  counts <- lapply(a, function(x) length(which(!is.na(all_lin[x,]))) - 1)
-  counts<-as.numeric(counts)
+  counts<- sapply(1:nrow(all_lin), function(x) length(which(!is.na(all_lin[x,]))) - 1)
   all_lin$counts<-counts
   
   # Sort df by counts
   all_lin<-all_lin[order(counts, decreasing=TRUE),]
-  
-  # Reorder cols by marker file
-  all_lin<-all_lin %>% select(marker$Cluster)
-  
+
   # Save matrix
   file_name<-paste0(animal, "_Regulon_Activity_Matrix.txt")
   write.table(all_lin, file=file_name, sep="\t", row.names=F, quote=F)
   
+  return(all_lin)
   # Reset wd
   setwd(input)
 }
