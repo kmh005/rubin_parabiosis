@@ -1,3 +1,19 @@
+# Kavya Shah
+# Last update: 08.20.2020 5:25 PM
+#
+# This script several post-processing functions using SCENIC top regulators data
+# and ParaCool DGE data, including making a Venn diagram of the top regulons from 
+# SCENIC, comparing bidirectionality of expression in OY and YO animals, and finding
+# TFs that are DGE and SCENIC-significant.
+#
+# Usage instructions:
+# 1. Load the libraries
+# 2. Load all three functions (load_data, get_regulons, post_processing)
+# 3. Set up variables and load them (example set of vars provided)
+# 4. At the bottom, un-comment out the all_clusters list for the lineage you are 
+# interested in
+# 5. Run the lapply function to get output for all cell clusters within a lineage
+
 # Load libraries
 library(ggplot2)
 library(pheatmap)
@@ -15,22 +31,6 @@ load_data <- function(lineage, animal, cluster_type){
   file_name <- paste0(lineage, "_", animal, "_", cluster_type, "_top_regulators.v1.txt")
   read.delim(file_name, sep="\t", header=T)
 }
-
-# Load variables
-oy<-load_data("VASC", "OY", "big")
-oo<-load_data("VASC", "OO", "big")
-ox<-load_data("VASC", "OX", "big")
-yx<-load_data("VASC", "YX", "big")
-yo<-load_data("VASC", "YO", "big")
-yy<-load_data("VASC", "YY", "big")
-lineage<-"VASC"
-cluster_type<-"big"
-paracoolo<-"ALL_big_paracoolo.v1.xlsx"
-paracooly<-"ALL_big_paracooly.v1.xlsx"
-output<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/VASC/"
-cluster<-"EC"
-pval<-0.05
-input<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/top_regulator_files/by_lineage/VASC/"
 
 # Function to get regulons for each animal type and clean up their names
 # Inputs: 
@@ -88,7 +88,7 @@ post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo,
   vd_name<-paste0(lineage, "_regulons_ParaCoolY.png")
   futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
   vd<- venn.diagram(lwd= 5, paracooly_reg_list, vd_name, main="Significant regulons identified by SCENIC", 
-                    sub="VASC Lineage", main.fontface = "bold", main.fontfamily = "Helvetica",sub.fontfamily = "Helvetica", 
+                    sub=paste0(lineage," Lineage"), main.fontface = "bold", main.fontfamily = "Helvetica",sub.fontfamily = "Helvetica", 
                     cat.fontface = "bold", cat.fontfamily = "Helvetica", fill=c("blue", "red", "green", "yellow"), 
                     fontfamily="Helvetica", alpha=rep(0.4,4), imagetype = "png")
   
@@ -96,14 +96,14 @@ post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo,
   vd_name<-paste0(lineage, "_regulons_ParaCoolO.png")
   futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
   vd<- venn.diagram(lwd= 5, paracoolo_reg_list, vd_name, main="Significant regulons identified by SCENIC", 
-                    sub="VASC Lineage", main.fontface = "bold", main.fontfamily = "Helvetica",sub.fontfamily = "Helvetica", 
+                    sub=paste0(lineage," Lineage"), main.fontface = "bold", main.fontfamily = "Helvetica",sub.fontfamily = "Helvetica", 
                     cat.fontface = "bold", cat.fontfamily = "Helvetica", fill=c("blue", "red", "green", "yellow"), 
                     fontfamily="Helvetica", alpha=rep(0.4,4), imagetype = "png")
   
   # OY-YO comparison Venn
   vd_name<-paste0(lineage, "_OY_YO.png")
   futile.logger::flog.threshold(futile.logger::ERROR, name = "VennDiagramLogger")
-  vd<- venn.diagram(lwd= 5, oy_yo_reg_list, vd_name, main="Significant regulons in OY and YO Mice", sub="VASC Lineage", 
+  vd<- venn.diagram(lwd= 5, oy_yo_reg_list, vd_name, main="Significant regulons in OY and YO Mice", sub=paste0(lineage," Lineage"), 
                     main.fontface = "bold", main.fontfamily = "Helvetica",sub.fontfamily = "Helvetica", cat.fontface = "bold", 
                     cat.fontfamily = "Helvetica", fill=c("blue", "red"), fontfamily="Helvetica", alpha=rep(0.4,2), imagetype="png")
   
@@ -216,8 +216,34 @@ post_processing <- function(cluster, oy, oo, ox, yx, yo, yy, lineage, paracoolo,
   # Reset directory
   setwd(input)
 }
-
+                         
+# Load variables
+input<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/top_regulator_files/by_lineage/ASC_EPC/"
+output<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/post_processing_files/ASC_EPC/"
+oy<-load_data("ASC_EPC", "OY", "big")
+oo<-load_data("ASC_EPC", "OO", "big")
+ox<-load_data("ASC_EPC", "OX", "big")
+yx<-load_data("ASC_EPC", "YX", "big")
+yo<-load_data("ASC_EPC", "YO", "big")
+yy<-load_data("ASC_EPC", "YY", "big")
+lineage<-"ASC_EPC"
+cluster_type<-"big"
+paracoolo<-"ALL_big_paracoolo.v1.xlsx"
+paracooly<-"ALL_big_paracooly.v1.xlsx"
+cluster<-"EC"
+pval<-0.05
+                         
 # Run script
+# IMMUNE clusters
 # all_clusters<-c("MG", "MAC", "MNC", "T_cell", "DC", "NK", "B_cell", "NEUT")
+# OLG clusters
+# all_clusters<-c("OPC", "OLG", "OEG")
+# mNEUR small clusters
+# all_clusters<-c("GABA", "DOPA", "GLUT", "CHOL")
+# NEURON clusters
+# all_clusters<-c("GABA", "DOPA", "GLUT", "CHOL", "NendC", "ImmN", "NRP")
+# ASC_EPC clusters
+# all_clusters<-c("ASC", "NSC", "ARP", "CPC", "EPC")
+# VASC clusters
 # all_clusters<-c("EC", "PC", "VSMC", "VLMC", "Hb_VC", "ABC")
 all_results<-lapply(all_clusters, function(x) post_processing(x, oy, oo, ox, yx, yo, yy, lineage, paracoolo, paracooly, output, animals, pval, input))
