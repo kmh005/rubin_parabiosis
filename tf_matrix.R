@@ -1,12 +1,20 @@
+# Kavya Shah
+# Last update: 08.20.2020 5:25 PM
+#
+# This script organizes the SCENIC top regulators data into a parseable format.
+# The output is, for each animal type, a single matrix. Each row displays activity values
+# for a TF by cell type. This matrix is useful for comparing TF activity across cell types.
+#
+# Usage instructions:
+# 1. Load the libraries
+# 2. Load all three functions (load_data, clean_regulons, make_tf_matrix)
+# 3. Set up variables for directories and load them (example set of vars provided)
+# 5. Execute all_animals at the bottom and run the lapply function to get all the matrices
+
 # Load packages
 library(dplyr)
 library(reshape2)
 library(tibble)
-
-# Variables
-animal<-"OY"
-input<-paste0("/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/top_regulator_files/by_animal/", animal)
-output<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/TF_matrices"
 
 # Load data (SCENIC top regulator files)
 # Inputs:
@@ -43,7 +51,7 @@ make_tf_matrix <- function(animal, input, output){
   immune <- load_data("IMMUNE", animal, "big")
   neuron <- load_data("NEURON", animal, "big")
   asc_epc <- load_data("ASC_EPC", animal, "big")
-  # olg <- load_data("OLG", animal, "big")
+  olg <- load_data("OLG", animal, "big")
   
   # Set output directory for final matrix
   setwd(output)
@@ -51,12 +59,13 @@ make_tf_matrix <- function(animal, input, output){
   # marker[nrow(marker) + 1,] = c("counts","counts")
   
   
-  # subset out OLG cell types (for now)
-  marker<-marker[!(marker$Cluster=="OPC" | marker$Cluster=="OLG" | marker$Cluster=="OEG"),]
-  
+  # HypENC and TNC Cell types don't exist for ASC_EPC YX and OO
+  if (animal == "OO" | animal == "YX") {
+    marker<-marker[!(marker$Cluster=="HypEPC" | marker$Cluster=="TNC"),]
+  }
   
   # Bind data
-  all_lin <- bind_rows(vasc, immune, neuron, asc_epc)
+  all_lin <- bind_rows(vasc, immune, neuron, asc_epc, olg)
   
   # Clean regulon names
   all_lin$Regulon <- clean_regulons(all_lin)
@@ -84,3 +93,11 @@ make_tf_matrix <- function(animal, input, output){
   # Reset wd
   setwd(input)
 }
+                  
+# Variables
+input<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/top_regulator_files/all/"
+output<-"/Users/kavyashah/Harvard Drive/Harvard/Rubin Lab/R/TF_matrices"
+                  
+# Run script
+all_animals<-c("OY", "OX", "OO", "YO", "YX", "YY")
+all_results<-lapply(all_animals, function(animal) make_tf_matrix(animal, input, output))
