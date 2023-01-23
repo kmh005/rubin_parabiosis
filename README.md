@@ -1,2 +1,2 @@
 # scenic_workflow
-POC scenic
+Proof-of-concept SCENIC workflow for R
