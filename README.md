@@ -8,4 +8,7 @@ Ximerakis M.*, Holton K.M.*, Giadone R.M., Ozek C. Saxena M., Santiago S., Adico
 
 https://doi.org/10.1101/2022.01.27.477911
 
+https://rubinlab.connect.hms.harvard.edu/parabiosis/ 
+
+https://singlecell.broadinstitute.org/single_cell/study/SCP2011/aging-mouse-brain-parabiosis
 
