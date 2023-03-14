@@ -1,52 +1,3 @@
-# load packages
-library(SCENIC)
-library(reshape2)
-library(pheatmap)
-library(htmlwidgets)
-library(Seurat)
-
-#Example on defining variables
-
-# I used the following input: seur_input<-"/net/rcstorenfs02/ifs/rc_labs/HSCI/Users/kavyams/20200427_Seur_R12345_Parabiosis_VASC_Lin_Small_no_doublet_reclustered_rename.Robj"
-seur_input<-"/net/rcstorenfs02/ifs/rc_labs/HSCI/Users/kholton/parabiosis/R_Files/VASC_Lin_Final/20200427_Seur_R12345_Parabiosis_VASC_Lin_Small_no_doublet_reclustered_rename.Robj"
-# I used the following output: "/net/rcstorenfs02/ifs/rc_labs/HSCI/Users/kavyams/scenic/VASC_Lin_Final/code_scratch/"
-file_output="/net/rcstorenfs02/ifs/rc_labs/HSCI/Users/kholton/parabiosis/scenic/VASC_Lin_Final/code_scratch/"
-fileloc_cells="VASC_OY_big_scratch"
-animals="OY"
-clusters=NULL
-cores=16
-# I used the following database path: database<-"/net/rcstorenfs02/ifs/rc_labs/HSCI/Users/kavyams/scenic_db"
-database<-"/net/rcstorenfs02/ifs/rc_labs/HSCI/Users/kholton/parabiosis/scenic/cisTarget_databases"
-
-#pheatmap saving function
-save_pheatmap_pdf <- function(x, filename, width=8, height=30) {
-    # ensures that we aren't missing function arguments
-    # x contains a pheatmap object, which in turn contains a gtable heatmap
-   stopifnot(!missing(x))
-   stopifnot(!missing(filename))
-
-    # creates pheatmap pdf
-   pdf(filename, width=width, height=height)
-   grid::grid.newpage()
-   grid::grid.draw(x$gtable)
-
-    #closes the plot
-   dev.off()
-}
-
-
-#Robj loading function
-loadRData <- function(fileName){
-    # loads the file
-    load(fileName)
-
-    #returns a list of all the local variables except the file name (?)
-    get(ls()[ls() != "fileName"])
-}
-
-#scenic function to annotate
-
-
 runScenic<-function(seur_input, file_output, fileloc_cells, animals, clusters, database, cores){
 
     # ensures that we have all of the function arguments
@@ -67,6 +18,7 @@ runScenic<-function(seur_input, file_output, fileloc_cells, animals, clusters, d
     seur_temp<-loadRData(seur_input)
 
     # sets the animal type (Q: what is it setting it to?)
+    # grabs first 2 chars from sample order, which is the animal type
     seur_temp$animal_type<-substr(seur_temp@meta.data$sample_order,1,2)
 
     # if no animal type is specified, Seurat object remains unchanged
@@ -115,12 +67,11 @@ runScenic<-function(seur_input, file_output, fileloc_cells, animals, clusters, d
     # Get regulons with RcisTarget
     runSCENIC_2_createRegulons(scenicOptions)
     # Score regulons with AUCell
-    runSCENIC_3_scoreCells(scenicOptions, exprMat_log)
-    # Cluster cells by activity/cell state
-    # (Before running this, we may want to optimize thresholds for binary matrix)
-    runSCENIC_4_aucell_binarize(scenicOptions)
+    runSCENIC_3_scoreCells(scenicOptions, exprMat_log, skipHeatmap=TRUE, skipTsne=TRUE)
 
-    # Note: We aren't visualizing with tSNE or exporting to loom
+    # Cluster cells by activity/cell state
+    runSCENIC_4_aucell_binarize(scenicOptions, skipBoxplot=TRUE, skipHeatmaps=TRUE, skipTsne=TRUE, exprMat=NULL)
+    cat("Step 4 completed.")
 
     # Loads list of TF motifs that support the regulons
     motifEnrichment_selfMotifs_wGenes <- loadInt(scenicOptions, "motifEnrichment_selfMotifs_wGenes")
@@ -138,17 +89,21 @@ runScenic<-function(seur_input, file_output, fileloc_cells, animals, clusters, d
     regulonAUC <- regulonAUC[onlyNonDuplicatedExtended(rownames(regulonAUC)),]
     regulonActivity_byCellType <- sapply(split(rownames(cellInfo), cellInfo$seuratCluster),
                                          function(cells) rowMeans(getAUC(regulonAUC)[,cells]))
+    # Z-score centers the data
+    # may need to optimize the range of the data for the heatmap (rn it is -3,3)
     regulonActivity_byCellType_Scaled <- t(scale(t(regulonActivity_byCellType), center = T, scale=T))
 
-    # creates heat map of regulon acticity by cell type (scaled)
+    cat("Creating heat map of regulon activity...")
+    # creates heat map of regulon activity by cell type (scaled)
     ph<-pheatmap(regulonActivity_byCellType_Scaled, #fontsize_row=3,
                        color=colorRampPalette(c("blue","white","deeppink4"))(100), breaks=seq(-3, 3, length.out = 100),
                        treeheight_row=10, treeheight_col=10, border_color=NA, silent=TRUE)
 
     # saves heatmap as a PDF
     save_pheatmap_pdf(ph, paste0(fileloc_cells, "_regulon_heatmap.v1.pdf"))
+    cat("Heat map saved.")
 
-    # writes a file of the most active genes in regulons (?)
+    # writes a file of the most active genes in regulons
     topRegulators <- reshape2::melt(regulonActivity_byCellType_Scaled)
     colnames(topRegulators) <- c("Regulon", "CellType", "RelativeActivity")
     topRegulators <- topRegulators[which(topRegulators$RelativeActivity>0),]
@@ -157,21 +112,25 @@ runScenic<-function(seur_input, file_output, fileloc_cells, animals, clusters, d
 
     # threshold for binary matrix is 70% of the cells must have active regulon to be "on"
 
+    cat("Creating binary regulon matrix heatmap...")
     # creates binary regulon matrix
     minPerc <- .7
+    # loads binary regulon activity
     binaryRegulonActivity <- loadInt(scenicOptions, "aucell_binary_nonDupl")
+    # loads cell annotations for cells in binary regulon matrix
     cellInfo_binarizedCells <- cellInfo[which(rownames(cellInfo)%in% colnames(binaryRegulonActivity)),, drop=FALSE]
+    # groups binary regulon activity by cell type
     regulonActivity_byCellType_Binarized <- sapply(split(rownames(cellInfo_binarizedCells), cellInfo_binarizedCells$seuratCluster),
                                                    function(cells) rowMeans(binaryRegulonActivity[,cells, drop=FALSE]))
+    # gives us only the regulons for which there is at least one cell type with at least 70% ACTIVE cells
     binaryActPerc_subset <- regulonActivity_byCellType_Binarized[which(rowSums(regulonActivity_byCellType_Binarized>minPerc)>0),]
 
-    # stores the binary regulon matrix as a heatmap
     pb<-pheatmap::pheatmap(binaryActPerc_subset, # fontsize_row=5,
                        color = colorRampPalette(c("white","pink","deeppink4"))(100), breaks=seq(0, 1, length.out = 100),
                        treeheight_row=10, treeheight_col=10, border_color=NA, silent=TRUE)
 
     save_pheatmap_pdf(pb, file=paste0(fileloc_cells, "_binary_regulon_heatmap_v1.pdf"))
-
+    cat("Binary regulon matrix heatmap saved.")
     # writes a file of the most active genes in the regulon, based on the binarized regulon activity
     topRegulatorsBinary <- reshape2::melt(regulonActivity_byCellType_Binarized)
     colnames(topRegulatorsBinary) <- c("Regulon", "CellType", "RelativeActivity")
@@ -181,5 +140,5 @@ runScenic<-function(seur_input, file_output, fileloc_cells, animals, clusters, d
 
     # save data
     save.image(paste0(fileloc_cells, ".v1.RData"))
-
+    cat("Data saved; program completed.")
 }
